@@ -8,10 +8,22 @@ from .serializers import UserSerializer, PostSerializer, CommentSerializer
 
 # Create your views here.
 
+
+#Authenticaiton, ig
+from django.contrib.auth import authenticate
+
+user = authenticate(username="new_user", password="secure_pass123")
+if user is not None:
+    print("Authentication successful!")
+else:
+    print("Invalid Credentials")
+
+
+
 #Retrieve all users
 def get_users(request):
     try:
-        users = list(User.objects.values('id', 'username', 'email', 'created_at'))
+        users = list(User.objects.values('id', 'username', 'email'))
         return JsonResponse(users, safe=False)
     except Exception as e:
         return JsonResponse ({'error': str(e)}, status=500)
@@ -19,17 +31,21 @@ def get_users(request):
 import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.models import User
 
 @csrf_exempt
 def create_user(request):
     if request.method == 'POST':
         try:
             data  = json.loads(request.body)
-            user = User.objects.create(username=data['username'], email=data['email'])
+            user = User.objects.create_user (username="new_user", password="secure_pass123") 
             return JsonResponse ({'id': user.id,'message': 'User created successfully'}, status=201)
+            print (user.password) # Outputs a hashed password   
         except Exception as e:
             return JsonResponse ({'error': str(e)}, status=400)
-        
+
+
+    
 #Retireve all posts (GET)
 from .models import Post
 
@@ -88,3 +104,34 @@ class CommentListCreate(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+#---Assign roles to users
+from django.contrib.auth.models import Group, User
+
+admin_group = Group.objects.create(name="Admin")
+user = User.objects.get(username="admin_user")
+user.groups.add(admin_group)
+
+from rest_framework.permissions import IsAuthenticated
+from .permissions import IsPostAuthor
+
+
+class PostDetailView(APIView):
+    permission_classes = [IsAuthenticated, IsPostAuthor]
+
+    def get(self, request, pk):
+        post = Post.objects.get(pk=pk)
+        self.check_object_permissions(request, post)
+        return Response({"content": post.content})
+
+#-----require authentication for all end points (Token)
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
+
+
+class ProtectedView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response({"message": "Authenticated!"})

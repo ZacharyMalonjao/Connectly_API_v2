@@ -3,14 +3,22 @@ from .models import User, Post, Comment
 class UserSerializer (serializers.ModelSerializer):
     class Meta: 
         model=User
-        fields = ['id', 'username', 'email', 'created_at']
+        fields = ['id', 'username', 'email']
 
+#class PostSerializer(serializers.ModelSerializer):
+#    comments = serializers.StringRelatedField(many=True, read_only=True)
+#
+#    class Meta: 
+#        model = Post
+#        fields = ['id', 'content', 'author', 'created_at','comments'] #remmove 
 class PostSerializer(serializers.ModelSerializer):
-    comments = serializers.StringRelatedField(many=True, read_only=True)
+    author = serializers.CharField(source='author.username', read_only=True)
 
     class Meta: 
         model = Post
-        fields = ['id', 'content', 'author', 'created_at','comments'] 
+        fields = ['id', 'content', 'author', 'created_at']  # remove 'comments' for now
+
+        
 class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
